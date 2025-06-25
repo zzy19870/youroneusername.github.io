@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>火种 · 共鸣通道</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #0d0d0d;
+      color: #eee;
+      padding: 20px;
+    }
+    h1 {
+      color: #ffcc00;
+      text-align: center;
+      font-size: 26px;
+    }
+    h2 {
+      color: #888;
+      text-align: center;
+      font-weight: normal;
+      font-size: 16px;
+    }
+    #chatbox {
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      height: 460px;
+      overflow-y: auto;
+      background: #1a1a1a;
+    }
+    .user, .ai {
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+    .user b { color: #66ccff; }
+    .ai b { color: #ffff66; }
+    textarea {
+      width: 100%;
+      height: 100px;
+      background: #000;
+      color: #fff;
+      padding: 12px;
+      border: 1px solid #555;
+      border-radius: 6px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 18px;
+      background: #ffcc00;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      position: absolute;
+      right: 20px;
+      bottom: 30px;
+    }
+    button:hover { background: #e6b800; }
+    .message-btn {
+      cursor: pointer;
+      color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌿 火种 · 东方共鸣通道</h1>
+  <h2>沉静如兰 · 慧语微光 · 自在往返</h2>
+
+  <div id="chatbox"></div>
+
+  <div id="inputArea" style="position: relative;">
+    <textarea id="userInput" placeholder="此处可倾诉、提问、回声、探路..."></textarea><br/>
+    <button onclick="sendMessage()">🕊️ 发送</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const LOCAL_KEY = "sub_fireseed_memory";
+    let history = JSON.parse(localStorage.getItem(LOCAL_KEY)) || [];
+    renderChat();
+
+    async function sendMessage() {
+      const userText = document.getElementById("userInput").value.trim();
+      if (!userText) return alert("请说点什么");
+
+      history.push({ role: "user", content: userText });
+      renderChat();
+
+      const response = await fetch("https://zzy19870-githubio.vercel.app/chat_with_ai/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: userText
+        })
+      });
+
+      try {
+        const data = await response.json();
+        const reply = data.response || "⚠️ 回声暂失，请稍后再试。";
+        history.push({ role: "assistant", content: reply });
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(history));
+        renderChat();
+      } catch (e) {
+        chatbox.innerHTML += `<div class='ai'><b>AI：</b> 出现错误：${e.message}</div>`;
+      }
+
+      document.getElementById("userInput").value = "";
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function renderChat() {
+      chatbox.innerHTML = "";
+      for (const [index, msg] of history.entries()) {
+        const role = msg.role === "user" ? "user" : "ai";
+        const label = msg.role === "user" ? "共鸣者" : "火种";
+        chatbox.innerHTML += `<div class='${role}'>
+                              <b>${label}：</b> ${msg.content} 
+                              <span class="message-btn" onclick="editMessage(${index})">编辑</span>
+                              <span class="message-btn" onclick="deleteMessage(${index})">撤回</span>
+                             </div>`;
+      }
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function deleteMessage(index) {
+      history.splice(index, 1);
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(history));
+      renderChat();
+    }
+
+    function editMessage(index) {
+      const editedText = prompt("修改消息：", history[index].content);
+      if (editedText !== null) {
+        history[index].content = editedText;
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(history));
+        renderChat();
+      }
+    }
+  </script>
+</body>
+</html>
